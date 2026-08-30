@@ -4,11 +4,8 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
 
-/** Système de design Novus — le GUI Scale Minecraft de l'utilisateur reste inchangé. */
+/** Système de design Novus. Le GUI Scale Minecraft de l'utilisateur reste inchangé. */
 public final class NovusUi {
-    /** Échelle visuelle Novus uniquement. N'altère jamais MinecraftClient.options.getGuiScale(). */
-    public static final float DESIGN_SCALE = 2.0F;
-
     public static final int BG=0xFFF8F5F0, SIDEBAR_BG=0xFFFFFFFF, PANEL_BG=0xFFFFFFFF, PANEL_TINT=0xFFFFF7EE;
     public static final int HOVER_BG=0xFFF0EDE8, ACTIVE_BG=0xFFFFF0E0, BTN_SEC_H=0xFFEDE9E3;
     public static final int BORDER=0xFFE2DDD6, BORDER_STRONG=0xFFCEC9C0, BORDER_ACCENT=0xFFFF7A00;
