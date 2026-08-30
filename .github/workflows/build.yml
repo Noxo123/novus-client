@@ -13,6 +13,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -22,15 +23,24 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
-      - name: Install Gradle
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: '8.8'
+          cache-cleanup: on-success
 
-      - name: Build mod
-        run: gradle build --no-daemon
+      - name: Clean previous Gradle state
+        run: gradle --stop || true
+
+      - name: Build Novus Client
+        run: gradle clean build --refresh-dependencies --no-daemon --stacktrace --warning-mode all
+
+      - name: Verify generated JAR
+        run: |
+          echo "Generated files:"
+          find build/libs -maxdepth 1 -type f -printf '%f\n'
+          test -n "$(find build/libs -maxdepth 1 -name '*.jar' -type f -print -quit)"
 
       - name: Upload Novus Client JAR
         uses: actions/upload-artifact@v4
