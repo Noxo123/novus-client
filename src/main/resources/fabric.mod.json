@@ -3,13 +3,19 @@
   "id": "novus-client",
   "version": "${version}",
   "name": "Novus Client",
-  "description": "The Novus Minecraft client experience.",
-  "authors": ["Noxo"],
+  "description": "A clean, lightweight client menu for Novus on Minecraft 1.20.1.",
+  "authors": [
+    "Noxo"
+  ],
   "environment": "client",
-  "entrypoints": { "client": ["fr.novus.client.NovusClient"] },
+  "entrypoints": {
+    "client": [
+      "fr.novus.client.NovusClient"
+    ]
+  },
   "depends": {
-    "fabricloader": ">=0.15.0",
+    "fabricloader": ">=0.17.2",
     "minecraft": "1.20.1",
-    "fabric-api": "*"
+    "fabric-api": ">=0.92.2"
   }
 }
