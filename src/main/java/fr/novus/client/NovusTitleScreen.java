@@ -82,7 +82,7 @@ public final class NovusTitleScreen extends Screen {
 
     private void drawSidebar(DrawContext ctx, int mouseX, int mouseY, int h) {
         TextRenderer tr = this.textRenderer;
-        tr.draw(ctx.getVertexConsumers(), Text.literal("NOVUS"), 20, 18, NovusUi.text());
+        ctx.drawTextWithShadow(tr, Text.literal("NOVUS"), 20, 18, NovusUi.text());
         ctx.drawText(tr, Text.literal("CLIENT"), 21, 30, NovusUi.accent(), false);
         ctx.drawText(tr, Text.literal("FABRIC 1.20.1"), 20, 43, NovusUi.muted(), false);
         int startY = 63;
