@@ -1,7 +1,9 @@
 package fr.novus.client;
 
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
 /** Local Novus styling. It never changes Minecraft's GuiScale option. */
@@ -29,6 +31,12 @@ public final class NovusUi {
         ctx.fill(x, y, x + 1, bottom, BORDER);
         ctx.fill(right - 1, y, right, bottom, BORDER);
         if (accent) ctx.fill(x, y, x + 4, bottom, ACCENT);
+    }
+
+    /** Compatibility overload for Novus screens. */
+    public static void button(DrawContext ctx, Screen screen, int x, int y, int w, int h,
+                              String label, int mouseX, int mouseY, boolean primary) {
+        button(ctx, MinecraftClient.getInstance().textRenderer, x, y, w, h, label, mouseX, mouseY, primary);
     }
 
     public static void button(DrawContext ctx, TextRenderer renderer, int x, int y, int w, int h,
