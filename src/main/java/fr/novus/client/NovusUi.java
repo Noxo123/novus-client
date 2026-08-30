@@ -1,12 +1,12 @@
 package fr.novus.client;
 
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
 /** Local Novus styling. It never changes Minecraft's GuiScale option. */
 public final class NovusUi {
-    /** Effective Novus design scale. This is rendering/layout only. */
+    /** Effective Novus design scale. Rendering/layout only; the user's Minecraft setting is untouched. */
     public static final float DESIGN_SCALE = 3.0F;
 
     private static final int PANEL = 0xFF11151B;
@@ -31,7 +31,7 @@ public final class NovusUi {
         if (accent) ctx.fill(x, y, x + 4, bottom, ACCENT);
     }
 
-    public static void button(DrawContext ctx, Screen screen, int x, int y, int w, int h,
+    public static void button(DrawContext ctx, TextRenderer renderer, int x, int y, int w, int h,
                               String label, int mouseX, int mouseY, boolean primary) {
         boolean hover = inside(x, y, x + w, y + h, mouseX, mouseY);
         int fill = primary ? (hover ? 0xFFFF8D2A : ACCENT) : (hover ? HOVER : PANEL);
@@ -44,9 +44,9 @@ public final class NovusUi {
         ctx.fill(x, y, x + 2, y + h, border);
         ctx.fill(x + w - 2, y, x + w, y + h, border);
 
-        int tw = screen.getTextRenderer().getWidth(label);
-        ctx.drawTextWithShadow(screen.getTextRenderer(), Text.literal(label),
-                x + (w - tw) / 2, y + (h - 8) / 2, text);
+        int tw = renderer.getWidth(label);
+        ctx.drawTextWithShadow(renderer, Text.literal(label), x + (w - tw) / 2,
+                y + (h - 8) / 2, text);
     }
 
     public static boolean inside(int left, int top, int right, int bottom, double x, double y) {
