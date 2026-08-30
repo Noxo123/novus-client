@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "novus-client",
+  "version": "${version}",
+  "name": "Novus Client",
+  "description": "The Novus Minecraft client experience.",
+  "authors": ["Noxo"],
+  "environment": "client",
+  "entrypoints": { "client": ["fr.novus.client.NovusClient"] },
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "1.20.1",
+    "fabric-api": "*"
+  }
+}
