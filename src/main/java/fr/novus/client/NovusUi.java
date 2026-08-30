@@ -6,6 +6,8 @@ import net.minecraft.text.Text;
 
 /** Système de design Novus. Le GUI Scale Minecraft de l'utilisateur reste inchangé. */
 public final class NovusUi {
+    /** Coordonnées natives de DrawContext : aucune échelle supplémentaire n'est appliquée. */
+    public static final float DESIGN_SCALE = 1.0F;
     public static final int BG=0xFFF8F5F0, SIDEBAR_BG=0xFFFFFFFF, PANEL_BG=0xFFFFFFFF, PANEL_TINT=0xFFFFF7EE;
     public static final int HOVER_BG=0xFFF0EDE8, ACTIVE_BG=0xFFFFF0E0, BTN_SEC_H=0xFFEDE9E3;
     public static final int BORDER=0xFFE2DDD6, BORDER_STRONG=0xFFCEC9C0, BORDER_ACCENT=0xFFFF7A00;
