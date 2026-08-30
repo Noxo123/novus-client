@@ -1,32 +1,36 @@
 package fr.novus.client;
 
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
 import net.minecraft.client.gui.screen.option.OptionsScreen;
+import net.minecraft.client.gui.screen.world.SelectWorldScreen;
 import net.minecraft.text.Text;
 
-/** Clean, fully custom Novus main menu. No vanilla ButtonWidget is used. */
-public final class NovusTitleScreen extends Screen {
-    private static final int BG = 0xFF090B0F;
-    private static final int PANEL = 0xFF11151B;
-    private static final int PANEL_HOVER = 0xFF181E27;
-    private static final int PANEL_ACTIVE = 0xFF202733;
-    private static final int LINE = 0xFF29313C;
-    private static final int TEXT = 0xFFF4F6F8;
-    private static final int MUTED = 0xFF8993A1;
-    private static final int ACCENT = 0xFFFF7A00;
-    private static final int SUCCESS = 0xFF65D391;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
+/**
+ * Main Novus screen. Everything visible here is custom; vanilla ButtonWidget is intentionally unused.
+ * The 3x value is a local render/layout scale only and NEVER modifies Minecraft's GuiScale option.
+ */
+public final class NovusTitleScreen extends Screen {
+    private static final float UI_SCALE = NovusUi.DESIGN_SCALE;
     private static final int SIDEBAR = 214;
-    private static final int MARGIN = 34;
-    private static final int GAP = 12;
+    private static final int MARGIN = 28;
+    private static final int GAP = 10;
+    private static final int SUCCESS = 0xFF63D391;
+
+    private static final String[] NAV = {"ACCUEIL", "MODPACK", "SERVEUR", "PARAMÈTRES"};
 
     private int page;
     private int playX, playY, playW, playH;
-    private int optionsX, optionsY, optionsW, optionsH;
+    private int secondaryX, secondaryY, secondaryW, secondaryH;
     private int quitX, quitY, quitW, quitH;
+    private List<String> mods = List.of();
 
     public NovusTitleScreen() {
         super(Text.literal("Novus Client"));
@@ -34,31 +38,45 @@ public final class NovusTitleScreen extends Screen {
 
     @Override
     protected void init() {
-        // No vanilla widgets: every control is drawn and hit-tested by Novus.
+        loadMods();
         layout();
     }
 
+    private void loadMods() {
+        List<String> loaded = new ArrayList<>();
+        FabricLoader.getInstance().getAllMods().forEach(mod -> {
+            String name = mod.getMetadata().getName();
+            if (name == null || name.isBlank()) name = mod.getMetadata().getId();
+            loaded.add(name);
+        });
+        loaded.sort(Comparator.comparing(String::toLowerCase));
+        mods = List.copyOf(loaded);
+    }
+
     private void layout() {
+        // Work in a local Novus coordinate system. Minecraft's own GuiScale setting is untouched.
+        int w = Math.max(320, Math.round(width / UI_SCALE));
+        int h = Math.max(180, Math.round(height / UI_SCALE));
         int contentLeft = SIDEBAR + MARGIN;
-        int contentRight = width - MARGIN;
-        int available = Math.max(240, contentRight - contentLeft);
-        int actionW = Math.min(230, Math.max(150, (available - GAP) / 2));
-        int actionY = height - 70;
+        int contentRight = w - MARGIN;
+        int available = Math.max(170, contentRight - contentLeft);
+        int actionW = Math.min(112, Math.max(76, (available - GAP) / 2));
+        int actionY = h - 30;
 
         playX = contentLeft;
         playY = actionY;
         playW = actionW;
-        playH = 42;
+        playH = 15;
 
-        optionsX = playX + actionW + GAP;
-        optionsY = actionY;
-        optionsW = actionW;
-        optionsH = 42;
+        secondaryX = playX + actionW + GAP;
+        secondaryY = actionY;
+        secondaryW = actionW;
+        secondaryH = 15;
 
-        quitW = SIDEBAR - 32;
-        quitX = 16;
-        quitY = height - 58;
-        quitH = 38;
+        quitX = 12;
+        quitY = h - 23;
+        quitW = SIDEBAR - 24;
+        quitH = 15;
     }
 
     @Override
@@ -69,175 +87,154 @@ public final class NovusTitleScreen extends Screen {
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        ctx.fill(0, 0, width, height, BG);
-        drawSidebar(ctx, mouseX, mouseY);
-        drawContent(ctx, mouseX, mouseY);
-        drawActions(ctx, mouseX, mouseY);
-        drawFooter(ctx);
+        NovusUi.background(ctx, width, height);
+
+        int localMouseX = Math.round(mouseX / UI_SCALE);
+        int localMouseY = Math.round(mouseY / UI_SCALE);
+
+        ctx.getMatrices().push();
+        ctx.getMatrices().scale(UI_SCALE, UI_SCALE, 1.0F);
+        drawScaled(ctx, localMouseX, localMouseY);
+        ctx.getMatrices().pop();
     }
 
-    private void drawSidebar(DrawContext ctx, int mouseX, int mouseY) {
-        ctx.fill(0, 0, SIDEBAR, height, PANEL);
-        ctx.fill(SIDEBAR - 1, 0, SIDEBAR, height, LINE);
+    private void drawScaled(DrawContext ctx, int mouseX, int mouseY) {
+        int w = Math.round(width / UI_SCALE);
+        int h = Math.round(height / UI_SCALE);
 
-        ctx.drawTextWithShadow(textRenderer, Text.literal("NOVUS"), 24, 25, TEXT);
-        ctx.drawText(textRenderer, Text.literal("CLIENT"), 25, 43, ACCENT, false);
-        ctx.drawText(textRenderer, Text.literal("MINECRAFT / FABRIC"), 24, 62, MUTED, false);
+        ctx.fill(0, 0, w, h, 0xFF080A0D);
+        ctx.fill(0, 0, SIDEBAR, h, 0xFF11151B);
+        ctx.fill(SIDEBAR - 1, 0, SIDEBAR, h, 0xFF2B3440);
 
-        String[] labels = {"ACCUEIL", "MODPACK", "SERVEUR", "PARAMÈTRES"};
-        int y = 103;
-        for (int i = 0; i < labels.length; i++) {
-            int top = y + i * 50;
+        drawSidebar(ctx, mouseX, mouseY, h);
+        drawContent(ctx, mouseX, mouseY, w, h);
+        drawFooter(ctx, w, h);
+    }
+
+    private void drawSidebar(DrawContext ctx, int mouseX, int mouseY, int h) {
+        ctx.drawTextWithShadow(textRenderer, Text.literal("NOVUS"), 20, 18, NovusUi.text());
+        ctx.drawText(textRenderer, Text.literal("CLIENT"), 21, 30, NovusUi.accent(), false);
+        ctx.drawText(textRenderer, Text.literal("FABRIC 1.20.1"), 20, 43, NovusUi.muted(), false);
+
+        int startY = 63;
+        for (int i = 0; i < NAV.length; i++) {
+            int top = startY + i * 35;
             boolean active = page == i;
-            boolean hover = inside(16, top - 7, SIDEBAR - 16, top + 31, mouseX, mouseY);
+            boolean hover = NovusUi.inside(10, top - 4, SIDEBAR - 10, top + 24, mouseX, mouseY);
 
             if (active || hover) {
-                ctx.fill(16, top - 7, SIDEBAR - 16, top + 31, active ? PANEL_ACTIVE : PANEL_HOVER);
+                ctx.fill(10, top - 4, SIDEBAR - 10, top + 24,
+                        active ? 0xFF222A35 : 0xFF1A2028);
             }
-            if (active) {
-                ctx.fill(16, top - 7, 19, top + 31, ACCENT);
-            }
+            if (active) ctx.fill(10, top - 4, 13, top + 24, NovusUi.accent());
 
-            ctx.drawText(textRenderer, Text.literal("0" + (i + 1)), 30, top + 5,
-                    active ? ACCENT : MUTED, false);
-            ctx.drawText(textRenderer, Text.literal(labels[i]), 62, top + 5,
-                    active ? TEXT : MUTED, false);
+            ctx.drawText(textRenderer, Text.literal("0" + (i + 1)), 18, top + 5,
+                    active ? NovusUi.accent() : NovusUi.muted(), false);
+            ctx.drawText(textRenderer, Text.literal(NAV[i]), 42, top + 5,
+                    active ? NovusUi.text() : NovusUi.muted(), false);
         }
 
-        drawButton(ctx, quitX, quitY, quitW, quitH, "QUITTER", mouseX, mouseY, false);
+        NovusUi.button(ctx, this, quitX, quitY, quitW, quitH, "QUITTER", mouseX, mouseY, false);
     }
 
-    private void drawContent(DrawContext ctx, int mouseX, int mouseY) {
+    private void drawContent(DrawContext ctx, int mouseX, int mouseY, int w, int h) {
         int x = SIDEBAR + MARGIN;
-        int right = width - MARGIN;
-        int top = 28;
-        int bottom = height - 90;
+        int right = w - MARGIN;
+        int top = 18;
 
-        ctx.drawTextWithShadow(textRenderer, Text.literal(title()), x, top, TEXT);
-        ctx.drawText(textRenderer, Text.literal(subtitle()), x, top + 22, MUTED, false);
+        ctx.drawTextWithShadow(textRenderer, Text.literal(title()), x, top, NovusUi.text());
+        ctx.drawText(textRenderer, Text.literal(subtitle()), x, top + 15, NovusUi.muted(), false);
 
-        if (right <= x || bottom <= top + 50) return;
+        if (right <= x + 30) return;
 
         switch (page) {
-            case 1 -> drawModpack(ctx, x, right, top + 62);
-            case 2 -> drawServer(ctx, x, right, top + 62);
-            case 3 -> drawSettings(ctx, x, right, top + 62);
-            default -> drawHome(ctx, x, right, top + 62);
+            case 1 -> drawModpack(ctx, x, right, top + 43);
+            case 2 -> drawServer(ctx, x, right, top + 43);
+            case 3 -> drawSettings(ctx, x, right, top + 43);
+            default -> drawHome(ctx, x, right, top + 43);
         }
+
+        drawActions(ctx, mouseX, mouseY);
     }
 
     private void drawHome(DrawContext ctx, int x, int right, int top) {
-        int h = Math.min(190, Math.max(120, height - top - 125));
-        panel(ctx, x, top, right, top + h, true);
+        int bottom = Math.max(top + 65, Math.min(top + 112, Math.round(height / UI_SCALE) - 40));
+        NovusUi.panel(ctx, x, top, right, bottom, true);
 
-        ctx.drawTextWithShadow(textRenderer, Text.literal("BIENVENUE SUR NOVUS"), x + 26, top + 27, ACCENT);
-        ctx.drawTextWithShadow(textRenderer, Text.literal("Minecraft, sans le menu vanilla."), x + 26, top + 58, TEXT);
-        ctx.drawText(textRenderer, Text.literal("Une interface pensée pour aller directement à l'essentiel."),
-                x + 26, top + 86, MUTED, false);
-
-        ctx.drawText(textRenderer, Text.literal("●  CLIENT PRÊT"), x + 26, top + h - 35, SUCCESS, false);
-        ctx.drawText(textRenderer, Text.literal("FABRIC  •  1.20.1"), right - 118, top + h - 35, MUTED, false);
+        ctx.drawTextWithShadow(textRenderer, Text.literal("BIENVENUE SUR NOVUS"), x + 18, top + 18, NovusUi.accent());
+        ctx.drawTextWithShadow(textRenderer, Text.literal("Minecraft, sans le menu vanilla."), x + 18, top + 37, NovusUi.text());
+        ctx.drawText(textRenderer, Text.literal("Un client simple, propre et rapide."), x + 18, top + 55, NovusUi.muted(), false);
+        ctx.drawText(textRenderer, Text.literal("●  CLIENT PRÊT"), x + 18, bottom - 16, SUCCESS, false);
     }
 
     private void drawModpack(DrawContext ctx, int x, int right, int top) {
-        int mid = x + (right - x - GAP) / 2;
-        panel(ctx, x, top, mid, top + 128, false);
-        panel(ctx, mid + GAP, top, right, top + 128, false);
+        int bottom = top + 112;
+        NovusUi.panel(ctx, x, top, right, bottom, true);
+        ctx.drawTextWithShadow(textRenderer, Text.literal("MODPACK"), x + 18, top + 18, NovusUi.accent());
+        ctx.drawText(textRenderer, Text.literal("Mods chargés : " + mods.size()), x + 18, top + 37, NovusUi.text(), false);
 
-        ctx.drawTextWithShadow(textRenderer, Text.literal("VERSION"), x + 22, top + 22, TEXT);
-        ctx.drawText(textRenderer, Text.literal("Minecraft 1.20.1"), x + 22, top + 52, ACCENT, false);
-        ctx.drawText(textRenderer, Text.literal("Fabric Loader"), x + 22, top + 78, MUTED, false);
-
-        int rx = mid + GAP + 22;
-        ctx.drawTextWithShadow(textRenderer, Text.literal("ENVIRONNEMENT"), rx, top + 22, TEXT);
-        ctx.drawText(textRenderer, Text.literal("Fabric API"), rx, top + 52, MUTED, false);
-        ctx.drawText(textRenderer, Text.literal("Mods prêts à charger"), rx, top + 78, MUTED, false);
-
-        panel(ctx, x, top + 144, right, top + 220, false);
-        ctx.drawText(textRenderer, Text.literal("Le client garde la gestion des mods native et stable."),
-                x + 22, top + 174, MUTED, false);
+        int y = top + 55;
+        int max = Math.min(mods.size(), 4);
+        for (int i = 0; i < max; i++) {
+            ctx.drawText(textRenderer, Text.literal("• " + mods.get(i)), x + 18, y + i * 12, NovusUi.muted(), false);
+        }
+        if (mods.size() > max) {
+            ctx.drawText(textRenderer, Text.literal("+ " + (mods.size() - max) + " autre(s)"),
+                    x + 18, y + max * 12, NovusUi.accent(), false);
+        }
     }
 
     private void drawServer(DrawContext ctx, int x, int right, int top) {
-        panel(ctx, x, top, right, top + 154, true);
-        ctx.drawTextWithShadow(textRenderer, Text.literal("SERVEURS"), x + 26, top + 27, TEXT);
-        ctx.drawText(textRenderer, Text.literal("Ouvre la liste multijoueur Minecraft."),
-                x + 26, top + 58, MUTED, false);
-        ctx.drawText(textRenderer, Text.literal("Aucun écran vanilla ne reste affiché derrière Novus."),
-                x + 26, top + 84, MUTED, false);
-        ctx.drawText(textRenderer, Text.literal("●  MULTIJOUEUR"), x + 26, top + 120, SUCCESS, false);
+        int bottom = top + 112;
+        NovusUi.panel(ctx, x, top, right, bottom, true);
+        ctx.drawTextWithShadow(textRenderer, Text.literal("SERVEURS"), x + 18, top + 18, NovusUi.text());
+        ctx.drawText(textRenderer, Text.literal("Accès direct au multijoueur Minecraft."), x + 18, top + 38, NovusUi.muted(), false);
+        ctx.drawText(textRenderer, Text.literal("●  CONNEXION DISPONIBLE"), x + 18, top + 65, SUCCESS, false);
+        ctx.drawText(textRenderer, Text.literal("Le bouton ouvre directement la liste des serveurs."),
+                x + 18, top + 87, NovusUi.muted(), false);
     }
 
     private void drawSettings(DrawContext ctx, int x, int right, int top) {
-        panel(ctx, x, top, right, top + 154, false);
-        ctx.drawTextWithShadow(textRenderer, Text.literal("PARAMÈTRES MINECRAFT"), x + 26, top + 27, TEXT);
-        ctx.drawText(textRenderer, Text.literal("Vidéo, audio, contrôles, langue et accessibilité."),
-                x + 26, top + 59, MUTED, false);
-        ctx.drawText(textRenderer, Text.literal("Les options natives restent disponibles sans afficher le titre vanilla."),
-                x + 26, top + 86, MUTED, false);
+        int bottom = top + 112;
+        NovusUi.panel(ctx, x, top, right, bottom, false);
+        ctx.drawTextWithShadow(textRenderer, Text.literal("PARAMÈTRES"), x + 18, top + 18, NovusUi.text());
+        ctx.drawText(textRenderer, Text.literal("Vidéo • Audio • Contrôles • Langue"), x + 18, top + 40, NovusUi.muted(), false);
+        ctx.drawText(textRenderer, Text.literal("Accessibilité et réglages Minecraft natifs."), x + 18, top + 58, NovusUi.muted(), false);
+        ctx.drawText(textRenderer, Text.literal("Ton réglage GUI Scale n'est jamais modifié."), x + 18, top + 84, NovusUi.accent(), false);
     }
 
     private void drawActions(DrawContext ctx, int mouseX, int mouseY) {
-        boolean showPlay = page == 0 || page == 2;
-        boolean showOptions = page == 0 || page == 3;
-
-        if (showPlay) {
-            drawButton(ctx, playX, playY, playW, playH,
-                    page == 2 ? "OUVRIR LES SERVEURS" : "JOUER", mouseX, mouseY, true);
+        if (page == 0) {
+            NovusUi.button(ctx, this, playX, playY, playW, playH, "JOUER", mouseX, mouseY, true);
+            NovusUi.button(ctx, this, secondaryX, secondaryY, secondaryW, secondaryH, "SERVEURS", mouseX, mouseY, false);
+        } else if (page == 1) {
+            NovusUi.button(ctx, this, playX, playY, playW, playH, "JOUER", mouseX, mouseY, true);
+            NovusUi.button(ctx, this, secondaryX, secondaryY, secondaryW, secondaryH, "RECHARGER", mouseX, mouseY, false);
+        } else if (page == 2) {
+            NovusUi.button(ctx, this, playX, playY, playW, playH, "SERVEURS", mouseX, mouseY, true);
+            NovusUi.button(ctx, this, secondaryX, secondaryY, secondaryW, secondaryH, "ACCUEIL", mouseX, mouseY, false);
+        } else {
+            NovusUi.button(ctx, this, playX, playY, playW, playH, "OPTIONS", mouseX, mouseY, true);
+            NovusUi.button(ctx, this, secondaryX, secondaryY, secondaryW, secondaryH, "ACCUEIL", mouseX, mouseY, false);
         }
-        if (showOptions) {
-            drawButton(ctx, optionsX, optionsY, optionsW, optionsH,
-                    page == 3 ? "OUVRIR LES OPTIONS" : "OPTIONS", mouseX, mouseY, false);
-        }
     }
 
-    private void drawButton(DrawContext ctx, int x, int y, int w, int h, String label,
-                            int mouseX, int mouseY, boolean primary) {
-        boolean hover = inside(x, y, x + w, y + h, mouseX, mouseY);
-        int fill = primary ? (hover ? 0xFFFF8B26 : ACCENT) : (hover ? PANEL_HOVER : PANEL);
-        int border = primary ? ACCENT : LINE;
-
-        ctx.fill(x, y, x + w, y + h, fill);
-        ctx.fill(x, y, x + w, y + 1, border);
-        ctx.fill(x, y + h - 1, x + w, y + h, border);
-        ctx.fill(x, y, x + 1, y + h, border);
-        ctx.fill(x + w - 1, y, x + w, y + h, border);
-
-        int textW = textRenderer.getWidth(label);
-        int color = primary ? 0xFF111111 : TEXT;
-        ctx.drawTextWithShadow(textRenderer, Text.literal(label), x + (w - textW) / 2, y + 14, color);
-    }
-
-    private void drawFooter(DrawContext ctx) {
-        int x = SIDEBAR + MARGIN;
-        ctx.drawText(textRenderer, Text.literal("NOVUS CLIENT  •  v0.1.0"), x, height - 31, MUTED, false);
-        String status = "FABRIC 1.20.1";
-        ctx.drawText(textRenderer, Text.literal(status), width - MARGIN - textRenderer.getWidth(status), height - 31, MUTED, false);
-    }
-
-    private void panel(DrawContext ctx, int left, int top, int right, int bottom, boolean accent) {
-        ctx.fill(left, top, right, bottom, PANEL);
-        ctx.fill(left, top, right, top + 1, LINE);
-        ctx.fill(left, bottom - 1, right, bottom, LINE);
-        ctx.fill(left, top, left + 1, bottom, LINE);
-        ctx.fill(right - 1, top, right, bottom, LINE);
-        if (accent) ctx.fill(left, top, left + 4, bottom, ACCENT);
+    private void drawFooter(DrawContext ctx, int w, int h) {
+        String left = "NOVUS CLIENT  •  v0.1.0";
+        String right = "GUI LOCAL 3x";
+        ctx.drawText(textRenderer, Text.literal(left), SIDEBAR + MARGIN, h - 12, NovusUi.muted(), false);
+        ctx.drawText(textRenderer, Text.literal(right), w - MARGIN - textRenderer.getWidth(right), h - 12, NovusUi.muted(), false);
     }
 
     private String title() {
-        return switch (page) {
-            case 1 -> "MODPACK";
-            case 2 -> "SERVEUR";
-            case 3 -> "PARAMÈTRES";
-            default -> "ACCUEIL";
-        };
+        return NAV[page];
     }
 
     private String subtitle() {
         return switch (page) {
-            case 1 -> "Ton environnement moddé, propre et lisible.";
-            case 2 -> "Rejoins directement une partie multijoueur.";
-            case 3 -> "Configure Minecraft sans revenir au menu vanilla.";
+            case 1 -> "Gestion et aperçu de ton environnement moddé.";
+            case 2 -> "Rejoins une partie sans repasser par le titre vanilla.";
+            case 3 -> "Les réglages Minecraft restent accessibles depuis Novus.";
             default -> "Une interface Minecraft entièrement Novus.";
         };
     }
@@ -246,31 +243,48 @@ public final class NovusTitleScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return super.mouseClicked(mouseX, mouseY, button);
 
-        int navY = 103;
-        for (int i = 0; i < 4; i++) {
-            int top = navY + i * 50;
-            if (inside(16, top - 7, SIDEBAR - 16, top + 31, mouseX, mouseY)) {
+        double x = mouseX / UI_SCALE;
+        double y = mouseY / UI_SCALE;
+
+        int navY = 63;
+        for (int i = 0; i < NAV.length; i++) {
+            int top = navY + i * 35;
+            if (NovusUi.inside(10, top - 4, SIDEBAR - 10, top + 24, x, y)) {
                 page = i;
                 return true;
             }
         }
 
-        if (inside(quitX, quitY, quitX + quitW, quitY + quitH, mouseX, mouseY)) {
+        if (NovusUi.inside(quitX, quitY, quitX + quitW, quitY + quitH, x, y)) {
             if (client != null) client.scheduleStop();
             return true;
         }
 
-        if ((page == 0 || page == 2) && inside(playX, playY, playX + playW, playY + playH, mouseX, mouseY)) {
-            openMultiplayer();
+        if (NovusUi.inside(playX, playY, playX + playW, playY + playH, x, y)) {
+            switch (page) {
+                case 0, 1 -> openSingleplayer();
+                case 2 -> openMultiplayer();
+                case 3 -> openOptions();
+                default -> { }
+            }
             return true;
         }
 
-        if ((page == 0 || page == 3) && inside(optionsX, optionsY, optionsX + optionsW, optionsY + optionsH, mouseX, mouseY)) {
-            openOptions();
+        if (NovusUi.inside(secondaryX, secondaryY, secondaryX + secondaryW, secondaryY + secondaryH, x, y)) {
+            switch (page) {
+                case 0 -> openMultiplayer();
+                case 1 -> loadMods();
+                case 2, 3 -> page = 0;
+                default -> { }
+            }
             return true;
         }
 
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private void openSingleplayer() {
+        if (client != null) client.setScreen(new SelectWorldScreen(this));
     }
 
     private void openMultiplayer() {
@@ -279,10 +293,6 @@ public final class NovusTitleScreen extends Screen {
 
     private void openOptions() {
         if (client != null) client.setScreen(new OptionsScreen(this, client.options));
-    }
-
-    private boolean inside(int left, int top, int right, int bottom, double x, double y) {
-        return x >= left && x < right && y >= top && y < bottom;
     }
 
     @Override
